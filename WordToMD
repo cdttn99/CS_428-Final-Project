@@ -1,0 +1,36 @@
+function exportFolderAsMarkdown() {
+  const folderId = ''; // From the URL in Drive
+  const rootFolder = DriveApp.getFolderById(folderId);
+  const outputRoot = DriveApp.createFolder(rootFolder.getName() + "_markdown");
+
+  processFolder(rootFolder, outputRoot);
+  Logger.log("Export complete! Check your Drive for a folder named: " + outputRoot.getName());
+}
+
+function processFolder(inputFolder, outputFolder) {
+  // Export all Microsoft Word files in this folder
+  const files = inputFolder.getFilesByType(MimeType.MICROSOFT_WORD);
+  while (files.hasNext()) {
+    const file = files.next();
+    exportFileAsMarkdown(file, outputFolder);
+  }
+
+  // Recursively process all subfolders
+  const subfolders = inputFolder.getFolders();
+  while (subfolders.hasNext()) {
+    const subfolder = subfolders.next();
+    const newOutputSubfolder = outputFolder.createFolder(subfolder.getName());
+    processFolder(subfolder, newOutputSubfolder);
+  }
+}
+
+function exportFileAsMarkdown(file, outputFolder) {
+  const url = https://docs.google.com/feeds/download/documents/export/Export?exportFormat=markdown&id= + file.getId();
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Bearer ' + token },
+  });
+  const markdown = response.getContentText();
+  const fileName = file.getName().replace(/.[^/.]+$/, ""); // remove .docx if present
+  outputFolder.createFile(fileName + ".md", markdown);
+}
